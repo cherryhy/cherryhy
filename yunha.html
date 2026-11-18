@@ -293,9 +293,10 @@ function split(t){t=t.replace(/\r/g,'').trim();if(!t)return[];
 function guess(t){if(/^["“「『']/.test(t))return 's';if(/^(그는|그녀는|그의|그녀의|그가|그녀가|그들은)/.test(t))return 'n';return 's'}
 function parse(raw){const m=raw.match(PRE);if(!m)return null;const n=m[1].toLowerCase();const isB=[S.nB,S.eB].some(v=>v&&v.trim().toLowerCase()===n);return {who:isB?'c':'d',t:raw.slice(m[0].length).trim()}}
 function syncParas(){const ps=split(S.src);const anyPre=ps.some(r=>PRE.test(r));
-  S.paras=ps.map((raw,i)=>{const o=S.paras[i];if(o&&o.raw===raw)return o;const pr=parse(raw);
-    if(pr)return {raw,t:pr.t,type:'s',who:pr.who,st:o?o.st:'',off:o?!!o.off:false,pre:true};
-    return {raw,t:raw,type:anyPre?'n':(o&&!o.pre?o.type:guess(raw)),who:o?o.who:'d',st:o?o.st:'',off:o?!!o.off:false}})}
+  S.paras=ps.map((raw,i)=>{const o=S.paras[i],same=o&&o.raw===raw;if(same&&o.manual)return o;const pr=parse(raw);
+    const keep={st:same?o.st:'',off:same?!!o.off:false};
+    if(pr)return Object.assign({raw,t:pr.t,type:'s',who:pr.who,pre:true},keep);
+    return Object.assign({raw,t:raw,type:anyPre?'n':guess(raw),who:'d'},keep)})}
 function save(){try{localStorage.setItem('yh-log',JSON.stringify(S))}catch(e){try{const c=Object.assign({},S,{img:''});localStorage.setItem('yh-log',JSON.stringify(c))}catch(e2){}}}
 const gems=a=>a.map(z=>`<span class="gem" style="width:${z}px;height:${z}px"></span>`).join('');
 const RET='<div class="ret"><i class="r1"></i><i class="r2"></i><i class="lv t"></i><i class="lv b"></i><i class="lh l"></i><i class="lh r"></i><i class="cd"></i></div>';
@@ -313,7 +314,7 @@ function renderEditor(){
       <button type="button" class="eye" aria-pressed="${!!p.off}">${p.off?'숨김':'보임'}</button></div>
       ${showSt?`<input type="text" id="st${i}" aria-label="P${i+1} 상태 문구" placeholder="${PRESET[Math.max(0,si-1)%PRESET.length]}" value="${esc(p.st||'')}">`:''}
       <div class="ex">${esc(p.t)}</div>`;
-    d.querySelectorAll('button[data-k]').forEach(b=>b.onclick=()=>{p[b.dataset.k]=b.dataset.v;update(true)});
+    d.querySelectorAll('button[data-k]').forEach(b=>b.onclick=()=>{p[b.dataset.k]=b.dataset.v;p.manual=true;update(true)});
     d.querySelector('.eye').onclick=()=>{p.off=!p.off;update(true)};
     const inp=d.querySelector('input');if(inp)inp.oninput=()=>{p.st=inp.value;update(false)};
     box.appendChild(d);
