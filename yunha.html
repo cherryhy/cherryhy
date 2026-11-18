@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>윤하 로그 메이커</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Nanum+Gothic:wght@400;700;800&family=Nanum+Myeongjo&family=Caveat:wght@600&display=swap">
+<style>
+body{margin:0}a.btn{text-decoration:none;display:inline-block}
+/* Layout: pinned live preview on top/left, editor beside/below; single dark tool look by choice */
+:root{
+  --bg:#0f0c0d; --panel:#171314; --line:#2c2628; --fg:#e8e1e3; --muted:#8b7f82;
+  --dove:#1262A7; --cherry:#e9c2a8; --cherry-soft:#f4d9c7;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+  --sans:'Nanum Gothic','Noto Sans CJK KR','Apple SD Gothic Neo',sans-serif;
+  --serif:'Nanum Myeongjo','Noto Serif CJK KR',serif;
+  --script:'Caveat','Nanum Gothic',cursive;
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);}
+.app{max-width:1360px;margin:0 auto;padding-block:24px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));}
+header.top{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 16px;margin-bottom:20px}
+header.top h1{font-family:var(--mono);font-size:18px;font-weight:500;letter-spacing:1px;margin:0}
+header.top h1 span{color:var(--cherry)}
+header.top p{margin:0;color:var(--muted);font-size:13px}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,420px);gap:24px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.panel h2{font-family:var(--mono);font-size:11px;letter-spacing:2px;color:var(--muted);font-weight:500;margin:0;text-transform:uppercase}
+.group{display:flex;flex-direction:column;gap:10px}
+label.f{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted)}
+input[type=text],textarea{background:#0f0c0d;border:1px solid var(--line);border-radius:6px;color:var(--fg);font:inherit;font-size:13px;padding:8px 10px;width:100%;box-sizing:border-box}
+textarea{min-height:180px;resize:vertical;line-height:1.7}
+input:focus-visible,textarea:focus-visible,button:focus-visible,.upl:focus-within{outline:2px solid var(--cherry);outline-offset:1px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.hint{font-size:12px;color:var(--muted);line-height:1.7;margin:0}
+.hint code{font-family:var(--mono);background:#0f0c0d;border:1px solid var(--line);padding:0 4px;border-radius:3px;color:var(--cherry-soft)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;align-self:flex-start}
+.seg button{background:transparent;border:0;color:var(--muted);font:inherit;font-size:12px;padding:7px 11px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed=true]{background:#2a2225;color:var(--fg)}
+.seg button.d[aria-pressed=true]{background:var(--pa,#1262A7);color:#fff}
+.seg button.c[aria-pressed=true]{background:var(--pb,#F4D9C7);color:#1a0f13}
+.paras{display:flex;flex-direction:column;gap:8px}
+.para{border:1px solid var(--line);border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:8px;background:#120f10}
+.para.off{opacity:.42}
+.para .ex{font-size:12px;color:#b9adb1;line-height:1.6;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.para .ctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.para .num{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:1px}
+.para input[type=text]{width:auto;flex:1;min-width:120px;padding:5px 8px;font-family:var(--mono);font-size:11px;letter-spacing:1px}
+.para .eye{margin-left:auto;background:transparent;border:1px solid var(--line);border-radius:6px;color:var(--muted);font:inherit;font-size:12px;padding:6px 10px;cursor:pointer}
+.para .eye[aria-pressed=true]{color:var(--cherry-soft);border-color:var(--cherry)}
+.checks{display:flex;flex-wrap:wrap;gap:8px}
+.checks label{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--fg);border:1px solid var(--line);border-radius:20px;padding:6px 12px;cursor:pointer}
+.checks input{accent-color:var(--cherry)}
+.who3{display:grid;grid-template-columns:1fr 1fr 44px;gap:8px;align-items:end}
+.who3 input[type=color]{width:44px;height:36px;padding:2px;border:1px solid var(--line);border-radius:6px;background:#0f0c0d;cursor:pointer}
+.who3 .lbl{grid-column:1/-1;font-size:12px;color:var(--fg);font-weight:700}
+.imgrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.upl{position:relative;display:inline-flex;align-items:center;gap:8px;border:1px dashed var(--cherry);border-radius:8px;padding:9px 14px;font-size:13px;color:var(--cherry-soft);cursor:pointer}
+.upl input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.thumb{width:44px;height:58px;border-radius:5px;background:#0f0c0d center/cover no-repeat;border:1px solid var(--line)}
+.btn{background:var(--cherry);color:#1a0f13;border:0;border-radius:8px;font:inherit;font-weight:700;font-size:14px;padding:12px 16px;cursor:pointer}
+.btn:hover{filter:brightness(1.08)}
+.btn.ghost{background:transparent;color:var(--fg);border:1px solid var(--line);font-weight:400}
+.btn.sm{font-size:12px;padding:8px 12px}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.previewWrap{min-width:0;position:sticky;top:max(12px,env(safe-area-inset-top,0px));max-height:calc(100vh - 24px);overflow:auto;border-radius:12px}
+.pvlabel{display:none}
+@media (max-width:900px){.previewWrap{top:env(safe-area-inset-top,0px);max-height:44vh;z-index:5;background:var(--bg);box-shadow:0 10px 18px -8px rgba(0,0,0,.8);border:1px solid var(--line)}
+ .pvlabel{display:block;position:sticky;top:0;z-index:2;background:rgba(15,12,13,.92);font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--muted);padding:6px 10px}}
+.stage{overflow:hidden;border-radius:12px}
+.stage>.log{transform-origin:0 0}
+.stage .ph{cursor:grab;touch-action:none}
+.stage .ph.drag{cursor:grabbing}
+.pos{display:flex;flex-direction:column;gap:8px}
+.pos label{display:grid;grid-template-columns:64px 1fr 38px;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.pos input[type=range]{accent-color:var(--cherry);width:100%}
+.pos output{font-family:var(--mono);font-size:11px;color:var(--fg);text-align:right}
+.modal{position:fixed;inset:0;background:rgba(8,6,7,.88);z-index:20;display:flex;flex-direction:column;align-items:center;gap:12px;overflow:auto;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.modal p{margin:0;font-size:13px;color:var(--fg);text-align:center;line-height:1.7}
+.modal img{max-width:min(100%,620px);border-radius:8px;border:1px solid var(--line)}
+
+/* ===== shared card bits ===== */
+.log{font-family:var(--sans);-webkit-text-size-adjust:100%;text-size-adjust:100%}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+.log .gem{display:inline-block;border-radius:50%;background:#fff;border:1.5px solid var(--lb);box-shadow:0 0 5px var(--lbG)}
+.log .spk{color:var(--lb);font-size:11px;line-height:1}
+.log .ret{position:relative;width:66px;height:66px;margin:0 auto}
+.log .ret i{position:absolute;display:block}
+.log .ret .r1{inset:0;border:1px dashed var(--laD);border-radius:50%}
+.log .ret .r2{inset:7px;border:1.3px solid var(--la);border-radius:50%}
+.log .ret .lv{left:32.4px;width:1.3px;height:22px;background:var(--la)}.log .ret .lv.t{top:1px}.log .ret .lv.b{bottom:1px}
+.log .ret .lh{top:32.4px;height:1.3px;width:22px;background:var(--la)}.log .ret .lh.l{left:1px}.log .ret .lh.r{right:1px}
+.log .ret .cd{left:30px;top:30px;width:6px;height:6px;border-radius:50%;background:var(--lb)}
+.log .ph{height:100%;background-size:cover;background-position:center;background-repeat:no-repeat}
+.log .xh{display:inline-block;vertical-align:-1px}
+
+/* ===== TERMINAL ===== */
+.log.term{background:#0f0c0d;color:#ddd}
+.log.term .wrap{padding:40px 36px 36px;background:radial-gradient(ellipse at 50% 100%,var(--laG),transparent 60%),linear-gradient(#0f1013,#111318 70%,#141822);}
+.log.term .wrap.tw{display:flex;gap:22px;align-items:stretch}
+.log.term .tpic{flex:0 0 38%;border:1px solid #2c2628;border-radius:10px;overflow:hidden;min-height:520px}
+.log.term .tmain{flex:1;min-width:0}
+.log.term .bar{display:flex;align-items:center;gap:8px;border:1px solid #2c2628;border-radius:10px 10px 0 0;padding:10px 14px;background:#191516}
+.log.term .dot{width:10px;height:10px;border-radius:50%;flex:none}
+.log.term .bar .t{margin-left:10px;line-height:1.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;font-family:var(--mono);font-size:11px;color:#8b7f82;letter-spacing:1.5px}
+.log.term .gal{flex:none;margin-left:auto;display:flex;align-items:center;gap:7px}
+.log.term .pill{white-space:nowrap;background:var(--la);color:#fff;font-family:var(--mono);font-size:9.5px;letter-spacing:1.5px;padding:3px 10px;border-radius:20px;border:1px dashed rgba(255,255,255,.75);transform:rotate(-4deg)}
+.log.term .screen{position:relative;border:1px solid #2c2628;border-top:none;border-radius:0 0 10px 10px;padding:26px 28px 30px}
+.log.term .screen.hs .head{min-height:96px;padding-right:130px}
+.log.term .scope{position:absolute;top:18px;right:26px;width:110px;text-align:center}
+.log.term .scope .s1{font-family:var(--mono);font-size:8.5px;letter-spacing:1.5px;color:var(--la);margin-top:5px;line-height:1.5}
+.log.term .scope .s1 b{color:var(--lb);font-weight:500}
+.log.term .head{font-family:var(--mono);font-size:11px;line-height:1.9;color:#7d7376;margin-bottom:22px;letter-spacing:.5px}
+.log.term .head b{color:#bbb;font-weight:500}
+.log.term .ok{color:var(--lb)}
+.log.term .binary{font-family:var(--mono);font-size:10px;color:#3a3436;letter-spacing:3px;margin-bottom:22px;white-space:nowrap;overflow:hidden}
+.log.term .sp{border-left:2px solid var(--bd);padding:4px 0 4px 18px;margin:0 0 22px}
+.log.term .sp.c{border-left:2px dotted var(--bd)}
+.log.term .sp.c .lab{border-radius:10px;padding:2px 9px}
+.log.term .tag{display:flex;gap:10px;align-items:center;font-family:var(--mono);font-size:10.5px;letter-spacing:1.5px;margin-bottom:10px}
+.log.term .lab{background:var(--bd);color:#0f0c0d;padding:2px 7px;border-radius:3px;font-weight:500}
+.log.term .st{color:var(--acc)}
+.log.term .who{margin-left:auto;color:#6d6366}
+.log.term .sp p{color:var(--fg2);font-size:14px;line-height:2;word-break:keep-all;margin:0;white-space:pre-wrap}
+.log.term .nr{margin:0 0 22px;padding:0 6px 0 20px;position:relative}
+.log.term .nr .sl{position:absolute;left:0;top:1px;font-family:var(--mono);font-size:11px;color:#5d5457}
+.log.term .nr p{font-family:var(--serif);color:#9b9093;font-size:14px;line-height:2;word-break:keep-all;margin:0;white-space:pre-wrap}
+.log.term .q{color:var(--lb);font-weight:700}
+.log.term .hl{color:#fff;font-weight:700;text-shadow:0 0 12px var(--lbG)}
+.log.term .rm{color:var(--la);font-weight:700}
+.log.term .foot{margin-top:28px;border-top:1px dashed #3a2f33;padding-top:16px;font-family:var(--mono);font-size:11px;color:#7d7376;line-height:1.9;letter-spacing:.5px}
+.log.term .pk{color:var(--lb)}
+.log.term .prog{height:4px;border-radius:2px;background:#2a2326;margin:10px 0 4px;overflow:hidden}
+.log.term .prog i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#5a5a5a,var(--la),var(--lb))}
+.log.term .sig{text-align:right;margin-top:18px;font-family:var(--mono);font-size:10px;color:#5d5457;letter-spacing:2px}
+.log.term .sig .a{color:var(--la)}.log.term .sig .b{color:var(--lb)}
+
+/* ===== GAL DIARY ===== */
+.log.diary{background:#fbe3ec;color:#2e2226}
+.log.diary .pg{padding:30px;background:linear-gradient(135deg,#fde9f0,#f9d9e5)}
+.log.diary .book{display:flex;align-items:stretch;background:#fffafc;border:3px solid #f4b3ca;border-radius:18px;overflow:hidden;box-shadow:0 6px 0 #f0c2d3}
+.log.diary .pic{flex:0 0 40%;position:relative;padding:16px;border-right:3px dashed #f4b3ca;background:#fff}
+.log.diary .pic .ph{border-radius:8px;min-height:560px}
+.log.diary .tape{position:absolute;width:96px;height:26px;background:rgba(255,143,184,.55);border-left:3px dotted rgba(255,255,255,.9);border-right:3px dotted rgba(255,255,255,.9)}
+.log.diary .tape.a{top:4px;left:6px;transform:rotate(-14deg)}
+.log.diary .tape.b{bottom:8px;right:4px;transform:rotate(-10deg);background:rgba(166,88,78,.35)}
+.log.diary .pic .gemc{position:absolute;top:22px;right:26px;display:flex;gap:4px;align-items:center}
+.log.diary .txt{flex:1;min-width:0;padding:26px 32px 26px}
+.log.diary .top{display:flex;align-items:center;gap:12px;flex-wrap:nowrap;border-bottom:2px solid #f6d3df;padding-bottom:12px;margin-bottom:18px}
+.log.diary .dt{font-family:var(--mono);font-size:12px;color:#c05f84;letter-spacing:1px;white-space:nowrap}
+.log.diary .dt b{color:#2e2226;font-weight:500}
+.log.diary .stk{margin-left:auto;display:flex;align-items:center;gap:6px;flex:none}
+.log.diary .pill{white-space:nowrap;background:#ff5fa0;color:#fff;font-family:var(--mono);font-size:9.5px;letter-spacing:1.5px;padding:4px 11px;border-radius:20px;border:1px dashed rgba(255,255,255,.85);transform:rotate(4deg)}
+.log.diary .ttl{font-family:var(--script);font-size:34px;line-height:1.1;color:#e2457f;margin:0 0 18px}
+.log.diary .ttl.ko{font-family:var(--sans);font-size:21px;font-weight:800;color:#2e2226}
+.log.diary .ttl .spk{font-size:16px;vertical-align:4px}
+.log.diary .sp{border-left:3px solid var(--bd);padding:3px 0 3px 15px;margin:0 0 20px}
+.log.diary .sp .tg{font-family:var(--mono);font-size:9.5px;letter-spacing:2px;color:var(--bd);margin-bottom:5px;display:flex;align-items:center;gap:6px}
+.log.diary .sp p{font-size:14px;color:#2e2226;font-weight:700;line-height:1.9;margin:0;word-break:keep-all;white-space:pre-wrap}
+.log.diary .nr p{font-size:14px;color:#7a6870;line-height:2.05;margin:0 0 20px;word-break:keep-all;white-space:pre-wrap}
+.log.diary .q{color:#e2457f;font-weight:800}
+.log.diary .hl{color:#2e2226;font-weight:800;text-shadow:0 0 10px rgba(255,110,165,.6)}
+.log.diary .rm{color:#d63a30;font-weight:800}
+.log.diary .end{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-top:10px;border-top:2px dotted #f6d3df;padding-top:14px}
+.log.diary .sign{font-family:var(--script);font-size:24px;color:#e2457f;line-height:1.2}
+.log.diary .sign small{display:block;font-family:var(--mono);font-size:9px;letter-spacing:2px;color:#b9a2ab}
+.log.diary .stamp{text-align:center;flex:none}
+.log.diary .stamp .s1{font-family:var(--mono);font-size:8.5px;letter-spacing:1.5px;color:#e0453b;margin-top:4px;line-height:1.5}
+.log.diary .stamp .s1 b{color:#e2457f;font-weight:500}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header class="top">
+    <h1>YUNHA <span>·</span> LOG MAKER</h1>
+    <p>글을 붙여넣고, 문단마다 대사·지문만 골라주면 로그 PNG가 돼요.</p>
+  </header>
+
+  <div class="grid">
+    <section class="previewWrap" aria-label="미리보기">
+      <div class="pvlabel">PREVIEW · 스크롤해서 전체 보기</div>
+      <div class="stage" id="stage"><div class="log" id="log"></div></div>
+    </section>
+
+    <section class="panel" aria-label="편집">
+      <h2>인물</h2>
+      <div class="who3"><span class="lbl">첫 번째 인물</span>
+        <label class="f" for="nA">이름 (대사 앞에 쓰는)<input type="text" id="nA"></label>
+        <label class="f" for="eA">로그 표기 (영문)<input type="text" id="eA"></label>
+        <label class="f" for="cA" title="색">색<input type="color" id="cA"></label>
+      </div>
+      <div class="who3"><span class="lbl">두 번째 인물</span>
+        <label class="f" for="nB">이름 (대사 앞에 쓰는)<input type="text" id="nB"></label>
+        <label class="f" for="eB">로그 표기 (영문)<input type="text" id="eB"></label>
+        <label class="f" for="cB" title="색">색<input type="color" id="cB"></label>
+      </div>
+
+      <h2>01 · 이미지 (왼쪽에 들어가요)</h2>
+      <div class="imgrow">
+        <div class="thumb" id="thumb" hidden></div>
+        <label class="upl" for="imgIn">＋ 이미지 고르기<input type="file" id="imgIn" accept="image/*"></label>
+        <button class="btn ghost sm" type="button" id="imgDel" hidden>이미지 빼기</button>
+      </div>
+      <div class="pos" id="pos" hidden>
+        <p class="hint">미리보기의 이미지를 손가락으로 밀면 위치가, 두 손가락으로 벌리면 확대가 바뀌어요. PC는 끌기 + 트랙패드 핀치(또는 Ctrl+휠). 아래 막대로도 조절할 수 있어요.</p>
+        <label for="imgX">좌우<input type="range" id="imgX" min="0" max="100" step="1"><output id="oX"></output></label>
+        <label for="imgZ">확대<input type="range" id="imgZ" min="100" max="400" step="1"><output id="oZ"></output></label>
+        <label for="imgY">위아래<input type="range" id="imgY" min="0" max="100" step="1"><output id="oY"></output></label>
+      </div>
+
+      <h2>02 · 본문</h2>
+      <label class="f" for="src"><span>글 붙여넣기 (문단은 빈 줄로, 대사는 앞에 <b>이름:</b>)</span>
+        <textarea id="src" placeholder="바이퍼: 대사는 이렇게 이름 뒤에 콜론을 붙여요.&#10;&#10;이름 없이 쓴 문단은 지문이 돼요."></textarea>
+      </label>
+      <p class="hint"><code id="hA">바이퍼:</code>·<code id="hB">세레노:</code>처럼 이름으로 시작하면 그 사람 대사, 나머지는 지문으로 자동 구분돼요.<br><code>==문장==</code> 두 번째 인물 색 강조 · <code>**문장**</code> 빛나는 강조 · <code>[[문장]]</code> 첫 번째 인물 색 강조</p>
+
+      <h2>03 · 문단 설정</h2>
+      <div class="paras" id="paras"></div>
+
+      <div class="group" id="gTerm">
+        <h2>04 · 장식 문구</h2>
+        <label class="f" for="fname">창 제목 파일명<input type="text" id="fname"></label>
+        <div class="row2">
+          <label class="f" for="status">상단 상태<input type="text" id="status"></label>
+          <label class="f" for="osname">하단 OS 이름<input type="text" id="osname"></label>
+        </div>
+        <div class="row2">
+          <label class="f" for="cmd">최상위 명령<input type="text" id="cmd"></label>
+          <label class="f" for="over">덮어쓰기<input type="text" id="over"></label>
+        </div>
+      </div>
+
+
+      <h2>06 · 장식 켜기/끄기</h2>
+      <div class="checks" id="checks"></div>
+
+      <div class="actions">
+        <button class="btn" type="button" id="save">PNG로 만들기</button>
+        <button class="btn ghost" type="button" id="reset">예시로 되돌리기</button>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div class="modal" id="modal" hidden>
+  <p id="mmsg">이미지를 만드는 중이에요…</p>
+  <img id="mimg" alt="완성된 로그 이미지" hidden>
+  <a class="btn" id="mdl" download="yunha_log.png" hidden>PNG 다운로드</a>
+  <button class="btn ghost" type="button" id="mclose">닫기</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+const SAMPLE=`바이퍼: 하루, 사랑합니다.
+
+그는 늘 그렇듯 무표정한 얼굴로 말했지만, 귀 끝이 조금 붉어져 있었다.
+
+세레노: 저도요, 윤백 씨.`;
+const DEF={src:SAMPLE,tpl:'term',mode:'grad',img:'',imgX:50,imgY:50,imgZ:1,imgW:0,imgH:0,fname:'record.log',status:'UNCONTROLLABLE',nA:'바이퍼',eA:'VIPER',cA:'#1262A7',nB:'세레노',eB:'SERENO',cB:'#F4D9C7',osname:'SERENO.os',cmd:'LOVE',over:'permanent ♡',
+  paras:[],
+  show:{head:true,bin:true,scope:true,gal:false,foot:true,sig:true}};
+const SHOWS={term:[['head','부팅 로그'],['bin','이진수 줄'],['scope','레드 스코프'],['gal','갸루 스티커'],['foot','설치 로그'],['sig','서명']],
+  diary:[['gal','갸루 스티커'],['scope','레드 스코프 도장']]};
+const PRESET=['BINARY MODE','ERROR DETECTED','OS REPLACED','CORE DIRECTIVE','SIGNAL LOCKED','SYNC STABLE'];
+const STAGES=[['#cfcfcf','#5a5a5a','#8a8a8a'],['#e6c9c4','#A6584E','#c9776b'],['#f3d3dc','#c86a82','#e08aa2'],['#ffe3ec','#E17F9E','#ff9dbb']];
+function mixW(h,k){h=/^#[0-9a-f]{6}$/i.test(h)?h:'#888888';const n=[1,3,5].map(i=>parseInt(h.substr(i,2),16));return '#'+n.map(v=>Math.round(v+(255-v)*k).toString(16).padStart(2,'0')).join('')}
+let CHAR={},DCOL={};
+function rgba(h,a){h=/^#[0-9a-f]{6}$/i.test(h)?h:'#888888';return 'rgba('+[1,3,5].map(i=>parseInt(h.substr(i,2),16)).join(',')+','+a+')'}
+function setColors(){const la=mixW(S.cA,.3),lb=mixW(S.cB,.1);
+  CHAR={d:[mixW(S.cA,.55),la,la],c:[mixW(S.cB,.35),lb,lb]};DCOL={d:S.cA,c:S.cB};
+  const r=document.documentElement.style;r.setProperty('--la',la);r.setProperty('--lb',lb);r.setProperty('--laD',rgba(la,.45));r.setProperty('--laG',rgba(S.cA,.28));r.setProperty('--lbG',rgba(lb,.6));
+  document.documentElement.style.setProperty('--pa',S.cA);document.documentElement.style.setProperty('--pb',S.cB)}
+
+let S;
+try{S=Object.assign({},DEF,JSON.parse(localStorage.getItem('yh-log')||'{}'))}catch(e){S=Object.assign({},DEF)}
+S.tpl='term';
+S.show=Object.assign({},DEF.show,S.show||{});
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const fmt=s=>esc(s).replace(/==(.+?)==/g,'<span class="q">$1</span>').replace(/\*\*(.+?)\*\*/g,'<span class="hl">$1</span>').replace(/\[\[(.+?)\]\]/g,'<span class="rm">$1</span>');
+const rx=v=>String(v||'').trim().replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+let PRE=/^$/;
+function setPre(){const ns=[S.nA,S.eA,S.nB,S.eB].map(rx).filter(Boolean);PRE=ns.length?new RegExp('^\\s*('+ns.join('|')+')\\s*[:：]\\s*','i'):/^\b\B/}
+function split(t){t=t.replace(/\r/g,'').trim();if(!t)return[];
+  let p=t.split(/\n\s*\n/);if(p.length===1&&!PRE.test(t))p=t.split(/\n/);
+  const out=[];p.forEach(b=>{let cur=[];b.split('\n').forEach(l=>{if(cur.length&&(PRE.test(l)||PRE.test(cur[0]))){out.push(cur.join('\n'));cur=[]}cur.push(l)});if(cur.length)out.push(cur.join('\n'))});
+  return out.map(x=>x.trim()).filter(Boolean)}
+function guess(t){if(/^["“「『']/.test(t))return 's';if(/^(그는|그녀는|그의|그녀의|그가|그녀가|그들은)/.test(t))return 'n';return 's'}
+function parse(raw){const m=raw.match(PRE);if(!m)return null;const n=m[1].toLowerCase();const isB=[S.nB,S.eB].some(v=>v&&v.trim().toLowerCase()===n);return {who:isB?'c':'d',t:raw.slice(m[0].length).trim()}}
+function syncParas(){const ps=split(S.src);const anyPre=ps.some(r=>PRE.test(r));
+  S.paras=ps.map((raw,i)=>{const o=S.paras[i];if(o&&o.raw===raw)return o;const pr=parse(raw);
+    if(pr)return {raw,t:pr.t,type:'s',who:pr.who,st:o?o.st:'',off:o?!!o.off:false,pre:true};
+    return {raw,t:raw,type:anyPre?'n':(o&&!o.pre?o.type:guess(raw)),who:o?o.who:'d',st:o?o.st:'',off:o?!!o.off:false}})}
+function save(){try{localStorage.setItem('yh-log',JSON.stringify(S))}catch(e){try{const c=Object.assign({},S,{img:''});localStorage.setItem('yh-log',JSON.stringify(c))}catch(e2){}}}
+const gems=a=>a.map(z=>`<span class="gem" style="width:${z}px;height:${z}px"></span>`).join('');
+const RET='<div class="ret"><i class="r1"></i><i class="r2"></i><i class="lv t"></i><i class="lv b"></i><i class="lh l"></i><i class="lh r"></i><i class="cd"></i></div>';
+const XHf=()=>'<svg class="xh" width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="'+mixW(S.cA,.3)+'" stroke-width="1.2"><circle cx="6" cy="6" r="4"/><path d="M6 0v3M6 9v3M0 6h3M9 6h3"/></svg>';
+
+function renderEditor(){
+  const box=$('paras');box.innerHTML='';let si=0;
+  S.paras.forEach((p,i)=>{
+    const d=document.createElement('div');d.className='para'+(p.off?' off':'');
+    const isS=p.type==='s';if(isS&&!p.off)si++;
+    const showSt=false;
+    d.innerHTML=`<div class="ctl"><span class="num">P${String(i+1).padStart(2,'0')}</span>
+      <div class="seg"><button type="button" data-k="type" data-v="s" aria-pressed="${isS}">대사</button><button type="button" data-k="type" data-v="n" aria-pressed="${!isS}">지문</button></div>
+      ${isS?`<div class="seg"><button type="button" class="d" data-k="who" data-v="d" aria-pressed="${p.who==='d'}">${esc(S.nA)}</button><button type="button" class="c" data-k="who" data-v="c" aria-pressed="${p.who==='c'}">${esc(S.nB)}</button></div>`:''}
+      <button type="button" class="eye" aria-pressed="${!!p.off}">${p.off?'숨김':'보임'}</button></div>
+      ${showSt?`<input type="text" id="st${i}" aria-label="P${i+1} 상태 문구" placeholder="${PRESET[Math.max(0,si-1)%PRESET.length]}" value="${esc(p.st||'')}">`:''}
+      <div class="ex">${esc(p.t)}</div>`;
+    d.querySelectorAll('button[data-k]').forEach(b=>b.onclick=()=>{p[b.dataset.k]=b.dataset.v;update(true)});
+    d.querySelector('.eye').onclick=()=>{p.off=!p.off;update(true)};
+    const inp=d.querySelector('input');if(inp)inp.oninput=()=>{p.st=inp.value;update(false)};
+    box.appendChild(d);
+  });
+  const ch=$('checks');ch.innerHTML='';
+  SHOWS[S.tpl].forEach(([k,l])=>{const lb=document.createElement('label');lb.htmlFor='sh_'+k;lb.innerHTML=`<input type="checkbox" id="sh_${k}" ${S.show[k]?'checked':''}> ${l}`;lb.querySelector('input').onchange=e=>{S.show[k]=e.target.checked;update(false)};ch.appendChild(lb)});
+  $('gTerm').hidden=S.tpl!=='term';
+
+
+  $('thumb').hidden=!S.img;$('imgDel').hidden=!S.img;$('pos').hidden=!S.img;$('imgX').value=S.imgX;$('imgZ').value=Math.round(S.imgZ*100);$('oZ').textContent=Math.round(S.imgZ*100)+'%';$('imgY').value=S.imgY;$('oX').textContent=Math.round(S.imgX);$('oY').textContent=Math.round(S.imgY);if(S.img)$('thumb').style.backgroundImage=`url(${S.img})`;
+}
+
+function renderTerm(vis){
+  const sh=S.show,n=vis.filter(p=>p.type==='s').length;let si=0,body='';
+  vis.forEach(p=>{
+    if(p.type==='s'){
+      const c=CHAR[p.who],isC=p.who==='c';
+      body+=`<div class="sp${isC?' c':''}" style="--fg2:${c[0]};--bd:${c[1]};--acc:${c[2]}"><div class="tag">${isC?'<span class="spk">✦</span>':XHf()}<span class="st">${esc(isC?S.eB:S.eA)}</span><span class="who">${esc(isC?S.eB+' ▸ '+S.eA:S.eA+' ▸ '+S.eB)}</span></div><p>${fmt(p.t)}</p></div>`;
+    }else body+=`<div class="nr"><span class="sl">//</span><p>${fmt(p.t)}</p></div>`;
+  });
+  const main=`<div class="bar"><span class="dot" style="background:${S.cA}"></span><span class="dot" style="background:${S.cB}"></span><span class="dot" style="background:#3a3436"></span><span class="t">${esc(String(S.eA).toLowerCase().replace(/\s+/g,"_"))}@log:~/${esc(S.fname)}</span>
+  ${sh.gal?`<span class="gal">${gems([5,7,5])}<span class="spk">✦</span><span class="pill">♡ GAL MODE ON</span><span class="spk">✦</span>${gems([5,7])}</span>`:''}</div>
+  <div class="screen${sh.scope?' hs':''}">
+  ${sh.scope?`<div class="scope">${RET}<div class="s1">TARGET: <b>${esc(S.eB)}</b><br>LOCKED ON</div></div>`:''}
+  ${sh.head?`<div class="head">&gt; boot <b>${esc(S.eA)}.sys</b> ............ mode: <b>BINARY</b><br>&gt; variable detected: <b>${esc(S.eB)}</b> ...... status: <span class="ok">${esc(S.status)}</span><br>&gt; open ${esc(S.fname)}</div>`:''}
+  ${(sh.scope&&!sh.head)?'<div style="height:96px"></div>':''}
+  ${sh.bin?`<div class="binary">01000100 01001111 01010110 01000101 00100000 00111100 00110011 00100000 01000011 01001000 01000101 01010010 01010010 01011001</div>`:''}
+  ${body||'<div class="nr"><span class="sl">//</span><p>글을 붙여넣으면 여기에 로그가 찍혀요.</p></div>'}
+  ${sh.foot?`<div class="foot">&gt; installing new operating system ........ <span class="pk">${esc(S.osname)}</span><div class="prog"><i></i></div>&gt; 100% complete · black &amp; white → <span class="pk">full color</span><br>&gt; top-level command: <span class="pk">${esc(S.cmd)}</span> · overwrite: <span class="pk">${esc(S.over)}</span></div>`:''}
+  ${sh.sig?`<div class="sig"><span class="a">${esc(S.eA)}</span> ─── TRANSMISSION END ─── <span class="b">${esc(S.eB)}</span></div>`:''}</div>`;
+  return S.img?`<div class="wrap tw"><div class="tpic"><div class="ph" style="background-image:url(${S.img});background-position:${S.imgX}% ${S.imgY}%"></div></div><div class="tmain">${main}</div></div>`:`<div class="wrap">${main}</div>`;
+}
+
+function renderDiary(vis){
+  const sh=S.show;let body='';
+  vis.forEach(p=>{
+    if(p.type==='s'){const isC=p.who==='c';
+      body+=`<div class="sp" style="--bd:${DCOL[p.who]}"><div class="tg">${isC?'<span class="spk">♡</span> '+esc(S.eB):XHf()+' '+esc(S.eA)}</div><p>${fmt(p.t)}</p></div>`;
+    }else body+=`<div class="nr"><p>${fmt(p.t)}</p></div>`;
+  });
+  const txt=`<div class="txt">
+    ${sh.gal?`<div class="top"><span class="stk">${gems([5,7,5])}<span class="spk">✦</span><span class="pill">♡ ${esc(S.eB)}'S DIARY</span><span class="spk">✦</span></span></div>`:''}
+    ${body||'<div class="nr"><p>글을 붙여넣으면 여기에 다이어리가 채워져요.</p></div>'}
+    ${sh.scope?`<div class="end"><span></span><div class="stamp">${RET}<div class="s1">TARGET: <b>${esc(S.eB)}</b><br>LOCKED ON</div></div></div>`:''}
+  </div>`;
+  const pic=S.img?`<div class="pic"><div class="ph" style="background-image:url(${S.img});background-position:${S.imgX}% ${S.imgY}%"></div>${sh.gal?`<span class="tape a"></span><span class="tape b"></span><span class="gemc">${gems([6,8,6])}</span>`:''}</div>`:'';
+  return `<div class="pg"><div class="book">${pic}${txt}</div></div>`;
+}
+
+function cardWidth(){return S.img?1100:760}
+function renderLog(){
+  const vis=S.paras.filter(p=>!p.off),lg=$('log');
+  lg.className='log '+(S.tpl==='diary'?'diary':'term');
+  lg.style.width=cardWidth()+'px';
+  lg.innerHTML=S.tpl==='diary'?renderDiary(vis):renderTerm(vis);
+  applyBg();
+  fit();
+}
+function applyBg(){
+  const ph=$('log').querySelector('.ph');if(!ph)return null;
+  ph.style.backgroundPosition=`${S.imgX}% ${S.imgY}%`;
+  if(!S.imgW||!S.imgH){ph.style.backgroundSize='cover';return null}
+  const cw=ph.offsetWidth,ch=ph.offsetHeight,sc=Math.max(cw/S.imgW,ch/S.imgH)*S.imgZ;
+  const bw=S.imgW*sc,bh=S.imgH*sc;ph.style.backgroundSize=`${bw}px ${bh}px`;
+  return {ovx:bw-cw,ovy:bh-ch,cw};
+}
+function fit(){const st=$('stage'),lg=$('log'),w=cardWidth();const k=Math.min(1,st.clientWidth/w);lg.style.transform=`scale(${k})`;st.style.height=(lg.offsetHeight*k)+'px'}
+function update(editor){syncParas();if(editor)renderEditor();renderLog();save()}
+
+function loadImg(file){
+  const r=new FileReader();
+  r.onload=()=>{const im=new Image();im.onload=()=>{
+    const max=1400,k=Math.min(1,max/Math.max(im.width,im.height));
+    const c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);
+    c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+    S.img=c.toDataURL('image/jpeg',.88);S.imgW=c.width;S.imgH=c.height;S.imgX=50;S.imgY=50;S.imgZ=1;update(true);
+  };im.src=r.result};
+  r.readAsDataURL(file);
+}
+function bind(){
+  $('src').value=S.src;
+  ['nA','eA','nB','eB','cA','cB'].forEach(k=>{$(k).value=S[k];$(k).oninput=()=>{S[k]=$(k).value;setColors();setPre();$('hA').textContent=(S.nA||S.eA)+':';$('hB').textContent=(S.nB||S.eB)+':';S.paras=[];update(true)}});
+  $('hA').textContent=(S.nA||S.eA)+':';$('hB').textContent=(S.nB||S.eB)+':';
+  ['fname','status','osname','cmd','over'].forEach(k=>{$(k).value=S[k];$(k).oninput=()=>{S[k]=$(k).value;update(false)}});
+  let tm;$('src').oninput=()=>{S.src=$('src').value;clearTimeout(tm);tm=setTimeout(()=>update(true),250)};
+
+
+  $('imgIn').onchange=e=>{const f=e.target.files[0];if(f)loadImg(f);e.target.value=''};
+  $('imgDel').onclick=()=>{S.img='';update(true)};
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const setPos=()=>{applyBg();$('imgX').value=S.imgX;$('imgY').value=S.imgY;$('imgZ').value=Math.round(S.imgZ*100);
+    $('oX').textContent=Math.round(S.imgX);$('oY').textContent=Math.round(S.imgY);$('oZ').textContent=Math.round(S.imgZ*100)+'%'};
+  $('imgX').oninput=()=>{S.imgX=+$('imgX').value;setPos();save()};
+  $('imgY').oninput=()=>{S.imgY=+$('imgY').value;setPos();save()};
+  $('imgZ').oninput=()=>{S.imgZ=+$('imgZ').value/100;setPos();save()};
+  const pts=new Map();let dr=null,pz=null;
+  const lg=$('log');
+  lg.addEventListener('pointerdown',e=>{const ph=e.target.closest('.ph');if(!ph)return;e.preventDefault();
+    ph.setPointerCapture(e.pointerId);pts.set(e.pointerId,{x:e.clientX,y:e.clientY});ph.classList.add('drag');
+    const r=ph.getBoundingClientRect(),g=applyBg()||{ovx:0,ovy:0,cw:r.width};const sc=r.width/(g.cw||r.width);
+    if(pts.size===1){dr={ph,x:e.clientX,y:e.clientY,sx:S.imgX,sy:S.imgY,sc,ovx:g.ovx,ovy:g.ovy};pz=null}
+    else if(pts.size===2){const [p1,p2]=[...pts.values()];pz={d:Math.hypot(p1.x-p2.x,p1.y-p2.y)||1,z:S.imgZ};dr=null}});
+  lg.addEventListener('pointermove',e=>{if(!pts.has(e.pointerId))return;pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(pz&&pts.size>=2){const [p1,p2]=[...pts.values()];S.imgZ=clamp(pz.z*Math.hypot(p1.x-p2.x,p1.y-p2.y)/pz.d,1,4);setPos();return}
+    if(dr){const dx=(e.clientX-dr.x)/dr.sc,dy=(e.clientY-dr.y)/dr.sc;
+      if(dr.ovx>1)S.imgX=clamp(dr.sx-dx/dr.ovx*100,0,100);
+      if(dr.ovy>1)S.imgY=clamp(dr.sy-dy/dr.ovy*100,0,100);setPos()}});
+  const end=e=>{if(!pts.has(e.pointerId))return;pts.delete(e.pointerId);
+    if(pts.size===0){lg.querySelectorAll('.ph.drag').forEach(x=>x.classList.remove('drag'));dr=null;pz=null;save()}
+    else if(pts.size===1){const [id,p]=[...pts.entries()][0];const ph=lg.querySelector('.ph');const r=ph.getBoundingClientRect(),g=applyBg()||{ovx:0,ovy:0,cw:r.width};
+      dr={ph,x:p.x,y:p.y,sx:S.imgX,sy:S.imgY,sc:r.width/(g.cw||r.width),ovx:g.ovx,ovy:g.ovy};pz=null}};
+  lg.addEventListener('pointerup',end);lg.addEventListener('pointercancel',end);
+  lg.addEventListener('wheel',e=>{if(!e.ctrlKey||!e.target.closest('.ph'))return;e.preventDefault();
+    S.imgZ=clamp(S.imgZ*Math.exp(-e.deltaY*0.01),1,4);setPos();save()},{passive:false});
+  $('reset').onclick=()=>{const keepImg=S.img;S=JSON.parse(JSON.stringify(DEF));S.img=keepImg;setColors();setPre();bind();update(true)};
+  $('mclose').onclick=()=>{$('modal').hidden=true};
+  $('save').onclick=makePng;
+}
+async function makePng(){
+  const m=$('modal'),img=$('mimg'),msg=$('mmsg');m.hidden=false;img.hidden=true;$('mdl').hidden=true;msg.textContent='이미지를 만드는 중이에요…';
+  try{
+    if(document.fonts&&document.fonts.ready)await document.fonts.ready;
+    const w=cardWidth();
+    const holder=document.createElement('div');holder.style.cssText=`position:fixed;left:-20000px;top:0;width:${w}px`;
+    const cl=$('log').cloneNode(true);cl.style.transform='none';holder.appendChild(cl);document.body.appendChild(holder);
+    const cv=await html2canvas(cl,{scale:2,backgroundColor:null,useCORS:true});
+    holder.remove();
+    img.src=cv.toDataURL('image/png');img.hidden=false;const dl=$('mdl');dl.href=img.src;dl.hidden=false;
+    msg.innerHTML='완성! <b>PNG 다운로드</b>를 누르거나, 이미지를 길게 눌러(PC는 우클릭) 저장하세요.';
+  }catch(e){msg.textContent='이미지를 만들지 못했어요. 잠시 뒤 다시 눌러 주세요. ('+e.message+')'}
+}
+setColors();setPre();bind();syncParas();renderEditor();renderLog();
+if(S.img&&!S.imgW){const im=new Image();im.onload=()=>{S.imgW=im.width;S.imgH=im.height;renderLog();save()};im.src=S.img}
+window.addEventListener('resize',fit);
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(fit);
+</script>
+
+</body>
+</html>
